@@ -46,117 +46,6 @@ def init_db():
     ''')
     conn.commit()
     conn.close()
-    
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-
-        conn = sqlite3.connect('clothes.db')
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
-        user = cursor.fetchone()
-        conn.close()
-
-        if user and check_password_hash(user[2], password):  # Check hashed password
-            return redirect(url_for("index"))  # Redirect to main page on successful login
-        else:
-            flash("Invalid username or password.", "danger")
-            return redirect(url_for("login"))
-
-    return render_template("login.html")
-
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-        confirm_password = request.form.get("confirm_password")
-
-        if password != confirm_password:
-            flash("Passwords do not match.", "danger")
-            return redirect(url_for("register"))
-
-        hashed_password = generate_password_hash(password)  # Hash password
-        conn = sqlite3.connect('clothes.db')
-        cursor = conn.cursor()
-
-        # Check if username already exists
-        cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
-        if cursor.fetchone():
-            flash("Username already exists.", "danger")
-            return redirect(url_for("register"))
-
-        cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_password))
-        conn.commit()
-        conn.close()
-
-        flash("Account created successfully! Please log in.", "success")
-        return redirect(url_for("login"))
-
-    return render_template("register.html")
-# @app.route("/login", methods=["GET", "POST"])
-# def login():
-#     if request.method == "POST":
-#         username = request.form.get("username")
-#         password = request.form.get("password")
-
-#         conn = sqlite3.connect('clothes.db')
-#         cursor = conn.cursor()
-#         cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
-#         user = cursor.fetchone()
-#         conn.close()
-
-#         if user and check_password_hash(user[2], password):  # Check hashed password
-#             return redirect(url_for("index"))  # Redirect to main page on successful login
-#         else:
-#             flash("Invalid username or password.", "danger")
-#             return redirect(url_for("login"))
-
-#     return render_template("login.html")
-
-# @app.route("/register", methods=["GET", "POST"])
-# def register():
-#     if request.method == "POST":
-#         username = request.form.get("username")
-#         password = request.form.get("password")
-#         confirm_password = request.form.get("confirm_password")
-
-#         if password != confirm_password:
-#             flash("Passwords do not match.", "danger")
-#             return redirect(url_for("register"))
-
-#         hashed_password = generate_password_hash(password)  # Hash password
-#         conn = sqlite3.connect('clothes.db')
-#         cursor = conn.cursor()
-
-#         # Check if username already exists
-#         cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
-#         if cursor.fetchone():
-#             flash("Username already exists.", "danger")
-#             return redirect(url_for("register"))
-
-#         cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_password))
-#         conn.commit()
-#         conn.close()
-
-#         flash("Account created successfully! Please log in.", "success")
-#         return redirect(url_for("login"))
-
-#     return render_template("register.html")
-
-# Update wishlist table to add user_id column if missing
-def update_wishlist_table():
-    conn = sqlite3.connect('clothes.db')
-    cursor = conn.cursor()
-    cursor.execute("PRAGMA table_info(wishlist)")
-    columns = [column[1] for column in cursor.fetchall()]
-    if "user_id" not in columns:
-        cursor.execute("ALTER TABLE wishlist ADD COLUMN user_id INTEGER NOT NULL DEFAULT 1")
-        print("user_id column added to wishlist table.")
-    conn.commit()
-    conn.close()
 
 # Update clothes table to add user_id column if missing
 def update_clothes_table():
@@ -167,57 +56,57 @@ def update_clothes_table():
     if "user_id" not in columns:
         cursor.execute("ALTER TABLE clothes ADD COLUMN user_id INTEGER NOT NULL DEFAULT 1")
         print("user_id column added to clothes table.")
+
     conn.commit()
     conn.close()
 
 init_db()
 update_clothes_table()
-update_wishlist_table()
 
-# # User registration
-# @app.route("/register", methods=["GET", "POST"])
-# def register():
-#     if request.method == "POST":
-#         username = request.form["username"]
-#         password = request.form["password"]
-#         hashed_password = generate_password_hash(password, method="pbkdf2:sha256")
+# User registration
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+        hashed_password = generate_password_hash(password, method="pbkdf2:sha256")
 
-#         conn = sqlite3.connect('clothes.db')
-#         cursor = conn.cursor()
-#         try:
-#             cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_password))
-#             conn.commit()
-#             flash("Registration successful! Please log in.", "success")
-#             return redirect(url_for("login"))
-#         except sqlite3.IntegrityError:
-#             flash("Username already exists. Please try again.", "danger")
-#         finally:
-#             conn.close()
+        conn = sqlite3.connect('clothes.db')
+        cursor = conn.cursor()
+        try:
+            cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_password))
+            conn.commit()
+            flash("Registration successful! Please log in.", "success")
+            return redirect(url_for("login"))
+        except sqlite3.IntegrityError:
+            flash("Username already exists. Please try again.", "danger")
+        finally:
+            conn.close()
 
-#     return render_template("register.html")
+    return render_template("register.html")
 
-# # User login
-# @app.route("/login", methods=["GET", "POST"])
-# def login():
-#     if request.method == "POST":
-#         username = request.form["username"]
-#         password = request.form["password"]
+# User login
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
 
-#         conn = sqlite3.connect('clothes.db')
-#         cursor = conn.cursor()
-#         cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
-#         user = cursor.fetchone()
-#         conn.close()
+        conn = sqlite3.connect('clothes.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+        user = cursor.fetchone()
+        conn.close()
 
-#         if user and check_password_hash(user[2], password):
-#             session["user_id"] = user[0]
-#             session["username"] = user[1]
-#             flash("Login successful!", "success")
-#             return redirect(url_for("index"))
-#         else:
-#             flash("Invalid username or password.", "danger")
+        if user and check_password_hash(user[2], password):
+            session["user_id"] = user[0]
+            session["username"] = user[1]
+            flash("Login successful!", "success")
+            return redirect(url_for("index"))
+        else:
+            flash("Invalid username or password.", "danger")
 
-#     return render_template("login.html")
+    return render_template("login.html")
 
 # User logout
 @app.route("/logout")
@@ -300,10 +189,6 @@ def delete_item(item_id):
 # Add to wishlist
 @app.route("/add_to_wishlist/<int:item_id>", methods=["POST"])
 def add_to_wishlist(item_id):
-    if "user_id" not in session:
-        flash("Please log in to add items to your wishlist.", "warning")
-        return redirect(url_for("login"))
-
     conn = sqlite3.connect('clothes.db')
     cursor = conn.cursor()
 
@@ -340,10 +225,6 @@ def wishlist():
 # Remove from wishlist
 @app.route("/remove_from_wishlist/<int:item_id>", methods=["POST"])
 def remove_from_wishlist(item_id):
-    if "user_id" not in session:
-        flash("Please log in to remove items from your wishlist.", "warning")
-        return redirect(url_for("login"))
-
     conn = sqlite3.connect('clothes.db')
     cursor = conn.cursor()
     cursor.execute("DELETE FROM wishlist WHERE item_id = ? AND user_id = ?", (item_id, session["user_id"]))
@@ -352,5 +233,5 @@ def remove_from_wishlist(item_id):
     return redirect(url_for("wishlist"))
 
 if __name__ == "__main__":
-    app.run(debug=True)   
-    
+    app.run(debug=True)
+
