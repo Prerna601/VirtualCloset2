@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wishlist</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center">Your Wishlist</h1>
+
+        <!-- Wishlist Items -->
+        <div class="closet-container">
+            {% if wishlist_items %}
+                {% for id, item_type, image_path in wishlist_items %}
+                    <div class="closet-item">
+                        <img src="{{ image_path }}" alt="{{ item_type }}">
+                        <p class="mt-2">{{ item_type }}</p>
+                        <!-- Remove from Wishlist -->
+                        <form method="POST" action="/remove_from_wishlist/{{ id }}">
+                            <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                        </form>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p>No items in your wishlist yet!</p>
+            {% endif %}
+        </div>
+
+        <hr>
+
+        <!-- Back to Closet -->
+        <div class="text-center">
+            <a href="/" class="btn btn-primary">Back to Closet</a>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2024 Virtual Closet. All rights reserved.</p>
+    </footer>
+</body>
+</html>
