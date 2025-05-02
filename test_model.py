@@ -7,7 +7,7 @@ from train_model import FashionCNN  # Import the trained model class
 # Load class labels (same as during training)
 class_labels = ['Blazer', 'Celana_Panjang', 'Celana_Pendek', 'Gaun', 'Hoodie', 
                 'Jaket', 'Jaket_Denim', 'Jaket_Olahraga', 'Jeans', 'Kaos', 
-                'Kemeja', 'Mantel', 'Polo', 'Rok', 'Sweter']
+                'Kemeja', 'Mantel', 'Polo', 'Rok','Shoes', 'Sweter']
 
 # Define transformation (must match training preprocessing)
 transform = transforms.Compose([

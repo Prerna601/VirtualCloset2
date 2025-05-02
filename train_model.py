@@ -25,6 +25,8 @@ test_path = os.path.join(dataset_root, "test")
 # Load datasets
 train_dataset = datasets.ImageFolder(root=train_path, transform=transform)
 test_dataset = datasets.ImageFolder(root=test_path, transform=transform)
+print("📦 Detected classes:", train_dataset.classes)
+
 
 # Create DataLoaders
 train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
@@ -57,7 +59,7 @@ criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 # Training loop
-num_epochs = 10
+num_epochs = 5
 for epoch in range(num_epochs):
     model.train()
     running_loss = 0.0

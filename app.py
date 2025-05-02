@@ -23,7 +23,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # Load class labels (same as during training)
 class_labels = ['Blazer', 'Celana_Panjang', 'Celana_Pendek', 'Gaun', 'Hoodie', 
                 'Jaket', 'Jaket_Denim', 'Jaket_Olahraga', 'Jeans', 'Kaos', 
-                'Kemeja', 'Mantel', 'Polo', 'Rok', 'Sweter']
+                'Kemeja', 'Mantel', 'Polo', 'Rok','Shoes', 'Sweter']
 
 # Define transformation for input images
 transform = transforms.Compose([
@@ -40,15 +40,35 @@ model.eval()  # Set model to evaluation mode
 
 # Function to predict image category
 def predict_image(image_path):
-    img = Image.open(image_path).convert("RGB")  # Ensure image is RGB
-    img = transform(img).unsqueeze(0)  # Add batch dimension
-    img = img.to(device)  # Move to GPU if available
+    img = Image.open(image_path).convert("RGB")
+    img = transform(img).unsqueeze(0).to(device)
 
     with torch.no_grad():
         output = model(img)
         predicted_class = torch.argmax(output).item()
-    
-    return class_labels[predicted_class]
+
+    return class_labels[predicted_class]  # e.g., "Jeans"
+
+# def predict_image(image_path):
+#     img = Image.open(image_path).convert("RGB")  # Ensure image is RGB
+#     img = transform(img).unsqueeze(0)  # Add batch dimension
+#     img = img.to(device)
+
+#     with torch.no_grad():
+#         output = model(img)
+#         predicted_class = torch.argmax(output).item()
+#         label = class_labels[predicted_class]
+
+#     # 🔽 Map AI class to UI category
+#     label_to_category = {
+#         "Kaos": "Top", "Kemeja": "Top", "Hoodie": "Top", "Jaket": "Top", "Blazer": "Top",
+#         "Sweter": "Top", "Polo": "Top", "Mantel": "Top", "Jaket_Denim": "Top", "Jaket_Olahraga": "Top",
+#         "Rok": "Bottom", "Celana_Panjang": "Bottom", "Celana_Pendek": "Bottom", "Jeans": "Bottom",
+#         "Gaun": "Bottom", "Shoes": "Shoes"
+#     }
+
+#     return label_to_category.get(label, "Top")  # fallback to Top if unknown
+
 
 # Database initialization
 def init_db():
@@ -93,6 +113,52 @@ def init_db():
 init_db()
 
 # 🔹 **STEP 2: Modify the Image Upload Route for AI Categorization**
+# @app.route("/upload", methods=["POST"])
+# def upload():
+#     if "user_id" not in session:
+#         flash("Please log in first.", "warning")
+#         return redirect(url_for("login"))
+
+#     if "file" not in request.files:
+#         flash("No file part", "danger")
+#         return redirect(url_for("index"))
+
+#     file = request.files["file"]
+
+#     if file.filename == "":
+#         flash("No selected file", "danger")
+#         return redirect(url_for("index"))
+
+#     filename = secure_filename(file.filename)
+#     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+#     file.save(file_path)
+#     print(f"📂 Attempting to save file at: {file_path}")
+#     print(f"✅ File successfully saved at: {file_path}")
+
+#     # 🔽 Predict label using AI
+#     predicted_label = predict_image(file_path)
+
+#     # 🔽 Map AI label (e.g., "Kaos") to general category
+#     label_to_category = {
+#         "Kaos": "Top", "Kemeja": "Top", "Hoodie": "Top", "Jaket": "Top", "Blazer": "Top",
+#         "Sweter": "Top", "Polo": "Top", "Mantel": "Top", "Jaket_Denim": "Top", "Jaket_Olahraga": "Top",
+#         "Rok": "Bottom", "Celana_Panjang": "Bottom", "Celana_Pendek": "Bottom", "Jeans": "Bottom",
+#         "Gaun": "Bottom", "Shoes": "Shoes"
+#     }
+
+#     category = label_to_category.get(predicted_label, "Top")  # fallback to Top
+
+#     # 🔽 Save using mapped category
+#     conn = sqlite3.connect('clothes.db')
+#     cursor = conn.cursor()
+#     cursor.execute("INSERT INTO clothes (item_type, image_path, user_id) VALUES (?, ?, ?)",
+#                    (category, file_path, session["user_id"]))
+#     conn.commit()
+#     print("🧠 Stored to DB:", category, file_path, session["user_id"])
+#     conn.close()
+
+#     flash(f"✅ Uploaded and categorized as: {predicted_label} → {category}", "success")
+#     return redirect(url_for("index"))
 @app.route("/upload", methods=["POST"])
 def upload():
     if "user_id" not in session:
@@ -104,45 +170,39 @@ def upload():
         return redirect(url_for("index"))
 
     file = request.files["file"]
-
     if file.filename == "":
         flash("No selected file", "danger")
         return redirect(url_for("index"))
 
-    # Secure and save the uploaded file
     filename = secure_filename(file.filename)
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename).replace("\\", "/")
+    file.save(file_path)
+    print(f"📂 Saved file at: {file_path}")
 
-    # 🔹 Debugging Output
-    print(f"📂 Attempting to save file at: {file_path}")
+    predicted_label = predict_image(file_path)  # e.g., "Jeans"
 
-    try:
-        file.save(file_path)
-        print(f"✅ File successfully saved at: {file_path}")
-    except Exception as e:
-        print(f"❌ Error saving file: {e}")
-        flash("Error saving file!", "danger")
-        return redirect(url_for("index"))
+    # 🔁 Map AI label to general category
+    label_to_category = {
+        "Kaos": "Top", "Kemeja": "Top", "Hoodie": "Top", "Jaket": "Top", "Blazer": "Top",
+        "Sweter": "Top", "Polo": "Top", "Mantel": "Top", "Jaket_Denim": "Top", "Jaket_Olahraga": "Top",
+        "Rok": "Bottom", "Celana_Panjang": "Bottom", "Celana_Pendek": "Bottom", "Jeans": "Bottom",
+        "Gaun": "Bottom", "Shoes": "Shoes"
+    }
 
-    # Check if file actually exists
-    if not os.path.exists(file_path):
-        print(f"❌ File not found after saving: {file_path}")
-        flash("Upload failed. Please try again.", "danger")
-        return redirect(url_for("index"))
+    category = label_to_category.get(predicted_label, "Top")  # fallback to Top
+    print(f"🧠 Predicted: {predicted_label} → Category: {category}")
 
-    # Predict the category using the AI model
-    predicted_category = predict_image(file_path)
-
-    # Store the image and prediction in the database
     conn = sqlite3.connect('clothes.db')
     cursor = conn.cursor()
     cursor.execute("INSERT INTO clothes (item_type, image_path, user_id) VALUES (?, ?, ?)",
-                   (predicted_category, file_path, session["user_id"]))
+                   (category, file_path, session["user_id"]))
     conn.commit()
     conn.close()
 
-    flash(f"✅ Uploaded and categorized as: {predicted_category}", "success")
+    flash(f"✅ Uploaded and categorized as: {predicted_label} → {category}", "success")
     return redirect(url_for("index"))
+
+
 
 
 # 🔹 Fix `/add_to_wishlist` Error
@@ -185,6 +245,51 @@ def add_header(response):
     response.headers["Expires"] = "0"
     return response
 
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+        hashed_password = generate_password_hash(password, method="pbkdf2:sha256")
+
+        conn = sqlite3.connect('clothes.db')
+        cursor = conn.cursor()
+        try:
+            cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_password))
+            conn.commit()
+            flash("Registration successful! Please log in.", "success")
+            return redirect(url_for("login"))
+        except sqlite3.IntegrityError:
+            flash("Username already exists. Please try again.", "danger")
+        finally:
+            conn.close()
+
+    return render_template("register.html")
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+
+        conn = sqlite3.connect('clothes.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+        user = cursor.fetchone()
+        conn.close()
+
+        if user and check_password_hash(user[2], password):
+            session["user_id"] = user[0]
+            session["username"] = user[1]
+            flash("Login successful!", "success")
+            return redirect(url_for("index"))
+        else:
+            flash("Invalid username or password.", "danger")
+
+    return render_template("login.html")
+
+
 # Home page (only for logged-in users)
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -195,12 +300,18 @@ def index():
     conn = sqlite3.connect('clothes.db')
     cursor = conn.cursor()
 
-    # Fetch user's items
+    # Fetch all clothes for the user
     cursor.execute("SELECT * FROM clothes WHERE user_id = ?", (session["user_id"],))
     clothes = cursor.fetchall()
-
     conn.close()
-    return render_template("index.html", clothes=clothes)
+
+    # Split into Top, Bottom, Shoes
+    tops = [(item[0], item[2]) for item in clothes if item[1] == 'Top']
+    bottoms = [(item[0], item[2]) for item in clothes if item[1] == 'Bottom']
+    shoes = [(item[0], item[2]) for item in clothes if item[1] == 'Shoes']
+
+    return render_template("index.html", tops=tops, bottoms=bottoms, shoes=shoes)
+
 
 # Delete item
 @app.route("/delete/<int:item_id>", methods=["POST"])
