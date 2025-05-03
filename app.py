@@ -205,7 +205,7 @@ def upload():
 
 
 
-# 🔹 Fix `/add_to_wishlist` Error
+#  Fix `/add_to_wishlist` Error
 @app.route("/add_to_wishlist/<int:item_id>", methods=["POST"])
 def add_to_wishlist(item_id):
     if "user_id" not in session:
@@ -236,6 +236,35 @@ def add_to_wishlist(item_id):
 
     conn.close()
     return redirect(url_for("index"))
+
+@app.route("/wishlist")
+def wishlist():
+    if "user_id" not in session:
+        flash("Please log in to access your wishlist.", "warning")
+        return redirect(url_for("login"))
+
+    conn = sqlite3.connect('clothes.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT c.id, c.item_type, c.image_path 
+        FROM wishlist w
+        JOIN clothes c ON w.item_id = c.id
+        WHERE w.user_id = ?
+    ''', (session["user_id"],))
+    wishlist_items = cursor.fetchall()
+    conn.close()
+
+    return render_template("wishlist.html", wishlist_items=wishlist_items)
+
+@app.route("/remove_from_wishlist/<int:item_id>", methods=["POST"])
+def remove_from_wishlist(item_id):
+    conn = sqlite3.connect('clothes.db')
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM wishlist WHERE item_id = ? AND user_id = ?", (item_id, session["user_id"]))
+    conn.commit()
+    conn.close()
+    return redirect(url_for("wishlist"))
+
 
 # 🔹 Fix Missing Image Display
 @app.after_request
@@ -311,6 +340,43 @@ def index():
     shoes = [(item[0], item[2]) for item in clothes if item[1] == 'Shoes']
 
     return render_template("index.html", tops=tops, bottoms=bottoms, shoes=shoes)
+
+@app.route("/suggest_outfit", methods=["POST"])
+def suggest_outfit():
+    if "user_id" not in session:
+        flash("Please log in to get outfit suggestions.", "warning")
+        return redirect(url_for("login"))
+
+    conn = sqlite3.connect('clothes.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM clothes WHERE user_id = ?", (session["user_id"],))
+    clothes = cursor.fetchall()
+    conn.close()
+
+    # Classify into categories
+    tops = [item for item in clothes if item[1] == 'Top']
+    bottoms = [item for item in clothes if item[1] == 'Bottom']
+    shoes = [item for item in clothes if item[1] == 'Shoes']
+
+    # Randomly choose one from each category
+    suggested_outfit = []
+    if tops:
+        suggested_outfit.append(random.choice(tops)[2])  # image path
+    if bottoms:
+        suggested_outfit.append(random.choice(bottoms)[2])
+    if shoes:
+        suggested_outfit.append(random.choice(shoes)[2])
+
+    # Pass all clothes as before, and new suggestion
+    tops_display = [(item[0], item[2]) for item in tops]
+    bottoms_display = [(item[0], item[2]) for item in bottoms]
+    shoes_display = [(item[0], item[2]) for item in shoes]
+
+    return render_template("index.html",
+                           tops=tops_display,
+                           bottoms=bottoms_display,
+                           shoes=shoes_display,
+                           suggested_outfit=suggested_outfit)
 
 
 # Delete item
